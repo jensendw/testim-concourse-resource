@@ -1,0 +1,74 @@
+#!/bin/bash
+
+set -e
+
+cd "${1}"
+
+exec 3>&1
+exec 1>&2
+set +x
+# for jq
+PATH=/usr/local/bin:$PATH
+
+TESTIM_ARGS=(/usr/local/bin/testim )
+
+payload=$(mktemp /tmp/resource-out.XXXXXX)
+
+cat > "${payload}" <&0
+
+token="$(jq -r '.params.token // null' < "${payload}")"
+project="$(jq -r '.params.project // null' < "${payload}")"
+test_plan="$(jq -r '.params.test_plan // null' < "${payload}")"
+suite="$(jq -r '.params.suite // null' < "${payload}")"
+host="$(jq -r '.params.host // null' < "${payload}")"
+port="$(jq -r '.params.port // null' < "${payload}")"
+parallel="$(jq -r '.params.parallel // null' < "${payload}")"
+test_id="$(jq -r '.params.test_id // null' < "${payload}")"
+label="$(jq -r '.params.label // null' < "${payload}")"
+timeout="$(jq -r '.params.timeout // null' < "${payload}")"
+debug="$(jq -r '.params.debug // "false"' < "${payload}")"
+
+[[ "$project" != "null" ]]  && TESTIM_ARGS=("${TESTIM_ARGS[@]}" "--project '${project}'")
+[[ "$suite" != "null" ]]  && TESTIM_ARGS=("${TESTIM_ARGS[@]}" "--suite '${suite}'")
+[[ "$token" != "null" ]]  && TESTIM_ARGS=("${TESTIM_ARGS[@]}" "--token '${token}'")
+[[ "$test_plan" != "null" ]]  && TESTIM_ARGS=("${TESTIM_ARGS[@]}" "--test-plan '${test_plan}'")
+[[ "$host" != "null" ]]  && TESTIM_ARGS=("${TESTIM_ARGS[@]}" "--host '${host}'")
+[[ "$port" != "null" ]]  && TESTIM_ARGS=("${TESTIM_ARGS[@]}" "--port '${port}'")
+[[ "$parallel" != "null" ]]  && TESTIM_ARGS=("${TESTIM_ARGS[@]}" "--parallel '${parallel}'")
+[[ "$test_id" != "null" ]]  && TESTIM_ARGS=("${TESTIM_ARGS[@]}" "-t '${test_id}'")
+[[ "$label" != "null" ]]  && TESTIM_ARGS=("${TESTIM_ARGS[@]}" "-l '${label}'")
+[[ "$timeout" != "null" ]]  && TESTIM_ARGS=("${TESTIM_ARGS[@]}" "--timeout '${timeout}'")
+
+
+echo "${TESTIM_ARGS[@]}" > /tmp/tmpcmd
+
+#Setup things for unit tests
+body="$(cat <<EOF
+{
+  "project": "${project}",
+  "suite": "${suite}",
+  "token": "${token}",
+  "test_plan": "${test_plan}",
+  "host": "${host}",
+  "port": "${port}",
+  "parallel": "${parallel}",
+  "test_id": "${test_id}",
+  "label": "${label}",
+  "timeout": "${timeout}"
+}
+EOF
+)"
+
+if [[ "$debug" == "true" ]]
+  then
+    debug_info="$(cat <<EOF
+{
+  "body": ${body}
+}
+EOF
+)"
+  echo "$debug_info " | jq -s add >&3
+
+else
+   bash /tmp/tmpcmd
+fi

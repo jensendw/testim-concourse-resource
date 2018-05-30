@@ -1,0 +1,18 @@
+{
+  "params": {
+    "token": "supersecrettoken",
+    "project": "some project",
+    "test_plan": "sometestplan",
+    "suite": "blank suite",
+    "host": "selenium.grid.com",
+    "debug": true,
+    "port": 4444,
+    "parallel": 3,
+    "test_id": "sometestid",
+    "label": "somelabel",
+    "timeout": 300
+  },
+  "source": {
+    "url": "https://some.url"
+  }
+}
